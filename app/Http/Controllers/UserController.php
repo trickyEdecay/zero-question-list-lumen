@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -23,7 +24,23 @@ class UserController extends Controller
         $email = $request->input('email');
         $password = $request->input('password');
 
-        // TODO: 验证数据
+        $validator = Validator::make($request->all(),[
+            'email' => ['required','email'],
+            'password' => ['required','min:6'],
+            'nickName' => ['required']
+        ],[
+            'email.required' => '邮箱不能为空',
+            'email.email' => '邮箱格式不正确',
+            'password.required' => '密码不能为空',
+            'password.min' => '密码不能少于6位数',
+            'nickName.required' => '昵称不能为空'
+        ]);
+        if($validator->fails()){
+            return [
+                'code' => '0001',
+                'msg' => $validator->errors()->first()
+            ];
+        }
 
         // step 2. 判断一下这个邮箱是否已经被注册过了
         $result = DB::table('user')->where('email',$email)->exists();
@@ -56,4 +73,61 @@ class UserController extends Controller
 
     }
     //
+
+    public function login(Request $request){
+        // step 1. 验证数据
+        $email = $request->input('email');
+        $password = $request->input('password');
+        $validator = Validator::make($request->all(),[
+            'email' => ['required','email'],
+            'password' => ['required']
+        ],[
+            'email.required' => '邮箱不能为空',
+            'email.email' => '邮箱格式不正确',
+            'password.required' => '密码不能为空'
+        ]);
+        if($validator->fails()){
+            return [
+                'code' => '0001',
+                'msg' => $validator->errors()->first()
+            ];
+        }
+
+        // step 2. 验证用户存不存在
+        $result = DB::table('user')->where('email',$email)->exists();
+        if(!$result){
+            return [
+                'code' => '0002',
+                'msg' => '账号或密码错误'
+            ];
+        }
+
+        // step 3. 验证用户密码是否正确
+        $result = DB::table('user')->where(['email'=>$email,'password'=>md5($password)])->get();
+        if(count($result)===0){
+            return [
+                'code' => '0003',
+                'msg' => '账号或密码错误'
+            ];
+        }
+
+        // step 4. 写入 session
+        session_start();
+        $_SESSION['name'] = $result[0]->name;
+        $_SESSION['id'] = $result[0]->id;
+        setcookie('user',$result[0]->id."::".$result[0]->name,time()+7*24*60*60,'/');
+        return [
+            'code' => '0000',
+            'msg' => '登录成功'
+        ];
+    }
+
+    public function getNickName(Request $request){
+
+        return [
+            'code' => '0000',
+            'msg' => '获取用户名成功',
+            'data' => $_SESSION['name']
+        ];
+    }
 }
