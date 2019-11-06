@@ -38,5 +38,8 @@ $router->group(['middleware'=>'auth'],function() use ($router){
 });
 
 $router->get('/test',function(){
-    $user = new User();
+//    $user = new User();
+//    $result = $user->create('hellotest','asdjasldkj@qq.com','123456');
+    return password_hash('123456',PASSWORD_BCRYPT);
+//    return $result;
 });

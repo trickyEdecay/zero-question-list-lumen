@@ -55,10 +55,11 @@ class UserController extends Controller
 
         // step 3. 创建新的账号
         $user = new User();
-        $user->name = $nickName;
-        $user->email = $email;
-        $user->password = md5($password);
-        $result = $user->save();
+        $result = $user->create($nickName,$email,$password);
+//        $user->name = $nickName;
+//        $user->email = $email;
+//        $user->password = password_hash($password,PASSWORD_BCRYPT);
+//        $result = $user->save();
 //        $result = DB::table('user')->insert([
 //            [
 //                'name' => $nickName,
@@ -110,8 +111,9 @@ class UserController extends Controller
         }
 
         // step 3. 验证用户密码是否正确
-        $result = User::where(['email'=>$email,'password'=>md5($password)])->get();
-        if(count($result)===0){
+//        $result = User::where(['email'=>$email,'password'=>md5($password)])->get();
+        $result = User::auth($email,$password);
+        if(!$result){
             return [
                 'code' => '0003',
                 'msg' => '账号或密码错误'
@@ -120,9 +122,10 @@ class UserController extends Controller
 
         // step 4. 写入 session
         session_start();
-        $_SESSION['name'] = $result[0]->name;
-        $_SESSION['id'] = $result[0]->id;
-        setcookie('user',$result[0]->id."::".$result[0]->name,time()+7*24*60*60,'/');
+        $result = User::where('email',$email)->first();
+        $_SESSION['name'] = $result->name;
+        $_SESSION['id'] = $result->id;
+        setcookie('user',$result->id."::".$result->name,time()+7*24*60*60,'/');
         return [
             'code' => '0000',
             'msg' => '登录成功'
