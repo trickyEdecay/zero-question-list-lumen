@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Model\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -43,7 +44,8 @@ class UserController extends Controller
         }
 
         // step 2. 判断一下这个邮箱是否已经被注册过了
-        $result = DB::table('user')->where('email',$email)->exists();
+//        $result = DB::table('user')->where('email',$email)->exists();
+        $result = User::isExist($email);
         if($result){
             return [
                 'code' => '0001',
@@ -52,13 +54,18 @@ class UserController extends Controller
         }
 
         // step 3. 创建新的账号
-        $result = DB::table('user')->insert([
-            [
-                'name' => $nickName,
-                'email' => $email,
-                'password' => md5($password)
-            ]
-        ]);
+        $user = new User();
+        $user->name = $nickName;
+        $user->email = $email;
+        $user->password = md5($password);
+        $result = $user->save();
+//        $result = DB::table('user')->insert([
+//            [
+//                'name' => $nickName,
+//                'email' => $email,
+//                'password' => md5($password)
+//            ]
+//        ]);
         // 为什么会有这个错呢？
         if(!$result){
             return [
@@ -94,7 +101,7 @@ class UserController extends Controller
         }
 
         // step 2. 验证用户存不存在
-        $result = DB::table('user')->where('email',$email)->exists();
+        $result = User::isExist($email);
         if(!$result){
             return [
                 'code' => '0002',
@@ -103,7 +110,7 @@ class UserController extends Controller
         }
 
         // step 3. 验证用户密码是否正确
-        $result = DB::table('user')->where(['email'=>$email,'password'=>md5($password)])->get();
+        $result = User::where(['email'=>$email,'password'=>md5($password)])->get();
         if(count($result)===0){
             return [
                 'code' => '0003',
@@ -128,6 +135,16 @@ class UserController extends Controller
             'code' => '0000',
             'msg' => '获取用户名成功',
             'data' => $_SESSION['name']
+        ];
+    }
+
+    public function logout(){
+        session_destroy();
+        session_unset();
+        setcookie('user','',time()-1000,'/');
+        return [
+            'code' => '0000',
+            'msg' => '登出成功!'
         ];
     }
 }
